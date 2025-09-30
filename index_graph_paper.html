@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Paper Programming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kalam', cursive;
+            background-color: #f7f9ff; /* Couleur du papier */
+            background-image:
+                linear-gradient(to bottom, #d4e4ff 1px, transparent 1px), /* Lignes horizontales fines */
+                linear-gradient(to bottom, #aaccff 2px, transparent 2px), /* Lignes horizontales principales */
+                linear-gradient(to right, #ffc0c0 2px, transparent 2px); /* Marge verticale rouge */
+            background-size: 100% 8px, 100% 32px, 40px 100%;
+        }
+        h1, h2, h3 {
+             font-family: 'Kalam', cursive;
+             font-weight: 700;
+        }
+        p, button, .program-item, #results-table {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .grid-container {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            width: clamp(300px, 90vw, 400px);
+            height: clamp(300px, 90vw, 400px);
+            border: 2px solid #333;
+            background-color: #fdfdfd;
+            background-image:
+                linear-gradient(#d4e4ff 1px, transparent 1px),
+                linear-gradient(90deg, #d4e4ff 1px, transparent 1px);
+            background-size: calc(100% / 4) calc(100% / 4);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .grid-cell {
+            position: relative;
+            border: 1px solid #e0e0e0;
+            transition: background-color 0.3s;
+        }
+        .grid-cell.colored {
+            background-color: #222;
+            background-image: none;
+        }
+        #robot {
+            position: absolute;
+            width: calc(100% / 4);
+            height: calc(100% / 4);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body.lecture-mode #robot {
+            pointer-events: none;
+        }
+        #robot svg {
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+        }
+        .program-item {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0,0,0,0.2);
+            color: white;
+        }
+        .program-item.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px white;
+        }
+        .command-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            font-weight: bold;
+            border-radius: 0.375rem;
+            color: white;
+            transition: all 0.2s;
+            font-size: 1.5rem;
+            border-bottom: 3px solid rgba(0,0,0,0.3);
+        }
+        .command-btn:hover {
+            transform: translateY(-2px);
+            border-bottom-width: 5px;
+        }
+        .command-btn:active {
+            transform: translateY(1px);
+            border-bottom-width: 2px;
+        }
+        .chalkboard {
+            background-color: #2e4034;
+            border: 10px solid #5d4037;
+            border-radius: 8px;
+            color: #f0f0f0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .mode-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            background-color: #fff;
+            border: 2px solid #5d4037;
+            color: #5d4037;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background-color: #5d4037;
+            color: white;
+        }
+        .hidden { display: none; }
+        #timer {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #1f2937; /* gray-800 */
+            border-radius: 4px;
+            border: 1px solid #4b5563; /* gray-600 */
+        }
+        #message-box.success {
+            border-color: #22c55e; /* green-500 */
+        }
+        #message-box.success #message-close-btn {
+            background-color: #22c55e;
+        }
+        #message-box.success #message-close-btn:hover {
+            background-color: #16a34a;
+        }
+        .challenge-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            background-color: #e5e7eb;
+            border: 2px solid #9ca3af;
+            color: #1f2937;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .challenge-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4">
+
+    <div class="w-full max-w-6xl mx-auto">
+        <header class="text-center mb-12">
+            <div class="flex items-center justify-center gap-4">
+                <img src="assets/images/cover.png" alt="cover.png" class="w-40 h-50 hidden sm:block" onerror="this.src='https://placehold.co/80x80/f7f9ff/333?text=Cover'; this.onerror=null;">
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-bold text-center text-gray-800 mb-2">Graph Paper Programming</h1>
+                    <p class="text-center text-gray-600">Programmez le robot pour dessiner sur la grille.</p>
+                </div>
+                <img src="assets/images/gribouilli.png" alt="gribouilli.png" class="w-40 h-40 hidden sm:block" onerror="this.src='https://placehold.co/80x80/f7f9ff/333?text=Gribouilli'; this.onerror=null;">
+            </div>
+        </header>
+
+        <!-- Sélecteur de mode -->
+        <div id="mode-selector" class="flex justify-center gap-4 mb-6">
+            <button class="mode-btn" data-mode="sable">Bac à Sable</button>
+            <button class="mode-btn" data-mode="defi">Défis</button>
+            <button class="mode-btn" data-mode="lecture">Lecture</button>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-8 items-center lg:items-start justify-center">
+            
+            <div class="flex flex-col items-center gap-4">
+                <!-- Zone de défi -->
+                <div id="challenge-zone" class="hidden text-center">
+                    <h2 class="text-2xl font-bold text-gray-700 mb-2">Modèle à Reproduire</h2>
+                    <div id="challenge-preview" class="grid-container rounded-lg shadow-md w-[200px] h-[200px] mx-auto"></div>
+                    <div id="challenge-buttons" class="mt-4 flex flex-wrap justify-center gap-2"></div>
+                </div>
+
+                <!-- Grille de Dessin -->
+                <div id="grid-wrapper" class="relative">
+                    <div id="game-board" class="grid-container rounded-lg shadow-lg">
+                        <!-- Le robot sera ajouté ici par JS -->
+                    </div>
+                </div>
+                 <!-- Tableau des résultats -->
+                <div id="results-container" class="mt-6 w-full max-w-xs"></div>
+            </div>
+
+            <!-- Panneaux de Contrôle -->
+            <div id="control-panels" class="w-full lg:w-80 flex flex-col gap-6">
+                <!-- Commandes -->
+                <div class="chalkboard p-4">
+                    <h2 class="text-2xl font-semibold mb-3 text-center border-b-2 border-gray-400 pb-2">1 - Commandes</h2>
+                    <div class="space-y-3 pt-2">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div></div>
+                            <button id="up-btn" class="command-btn bg-red-500 border-red-700">↑</button>
+                            <div></div>
+                            <button id="left-btn" class="command-btn bg-blue-500 border-blue-700">←</button>
+                            <button id="color-btn" class="w-full p-2 bg-yellow-500 border-yellow-700 text-white rounded-lg hover:bg-yellow-600 font-bold flex items-center justify-center gap-2 text-base">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M20.28 3.44a2.5 2.5 0 0 0-3.53 0L3.44 16.75a1 1 0 0 0-.29.71v3.1a1 1 0 0 0 1 1h3.1a1 1 0 0 0 .71-.29L20.57 7.26a2.5 2.5 0 0 0 0-3.53l-.29-.29Z"></path></svg>
+                                Griser
+                            </button>
+                            <button id="right-btn" class="command-btn bg-green-500 border-green-700">→</button>
+                            <div></div>
+                            <button id="down-btn" class="command-btn bg-purple-500 border-purple-700">↓</button>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Programme -->
+                <div class="chalkboard p-4">
+                    <h2 class="text-2xl font-semibold mb-3 text-center border-b-2 border-gray-400 pb-2">2 - Programme</h2>
+                    <div id="program-sequence" class="min-h-[60px] bg-gray-800 bg-opacity-20 rounded p-2 flex flex-row flex-wrap gap-2 border border-gray-500"></div>
+                </div>
+
+                <!-- Exécution -->
+                <div class="chalkboard p-4">
+                    <h2 class="text-2xl font-semibold mb-3 text-center border-b-2 border-gray-400 pb-2">3 - Exécution</h2>
+                    <div id="timer-container">
+                        <div id="timer" class="text-center text-3xl text-yellow-300 py-2 my-2">00:00</div>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button id="execute-btn" class="w-full p-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold">LANCER</button>
+                        <button id="reset-btn" class="w-full p-2 bg-red-500 text-white rounded hover:bg-red-600 font-bold">EFFACER</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panneau Mode Lecture -->
+            <div id="lecture-panel" class="w-full lg:w-80 flex flex-col gap-6 hidden">
+                 <div class="chalkboard p-4">
+                    <h2 class="text-2xl font-semibold mb-3 text-center border-b-2 border-gray-400 pb-2">Programme à Lire</h2>
+                    <div id="lecture-program-sequence" class="min-h-[60px] bg-gray-800 bg-opacity-20 rounded p-2 flex flex-row flex-wrap gap-2 border border-gray-500"></div>
+                    <div id="lecture-challenge-buttons" class="mt-4 flex flex-wrap justify-center gap-2"></div>
+                </div>
+                 <div class="chalkboard p-4">
+                    <h2 class="text-2xl font-semibold mb-3 text-center border-b-2 border-gray-400 pb-2">Vérification</h2>
+                    <div class="flex gap-3 pt-2">
+                        <button id="check-btn" class="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-bold">VÉRIFIER</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div id="message-box" class="bg-white rounded-lg shadow-xl p-8 text-center max-w-sm w-full">
+            <div id="message-icon" class="text-6xl mb-4"></div>
+            <h2 id="message-title" class="text-3xl font-bold mb-2 text-gray-800"></h2>
+            <p id="message-text" class="mb-6 text-lg text-gray-600"></p>
+            <button id="message-close-btn" class="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-bold">Continuer</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
+            const gameBoard = document.getElementById('game-board');
+            const upBtn = document.getElementById('up-btn');
+            const downBtn = document.getElementById('down-btn');
+            const leftBtn = document.getElementById('left-btn');
+            const rightBtn = document.getElementById('right-btn');
+            const colorBtn = document.getElementById('color-btn');
+            const executeBtn = document.getElementById('execute-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const programSequence = document.getElementById('program-sequence');
+            const modeSelector = document.getElementById('mode-selector');
+            const challengeZone = document.getElementById('challenge-zone');
+            const challengePreview = document.getElementById('challenge-preview');
+            const challengeButtons = document.getElementById('challenge-buttons');
+            const messageModal = document.getElementById('message-modal');
+            const messageBox = document.getElementById('message-box');
+            const messageIcon = document.getElementById('message-icon');
+            const messageTitle = document.getElementById('message-title');
+            const messageText = document.getElementById('message-text');
+            const messageCloseBtn = document.getElementById('message-close-btn');
+            const timerEl = document.getElementById('timer');
+            const timerContainer = document.getElementById('timer-container');
+            const resultsContainer = document.getElementById('results-container');
+            const controlPanels = document.getElementById('control-panels');
+            const lecturePanel = document.getElementById('lecture-panel');
+            const lectureProgramSequence = document.getElementById('lecture-program-sequence');
+            const lectureChallengeButtons = document.getElementById('lecture-challenge-buttons');
+            const checkBtn = document.getElementById('check-btn');
+
+            // --- GAME CONFIGURATION ---
+            const GRID_SIZE = 4;
+            const challenges = [
+                { title: "Carré", pattern: [[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]] },
+                { title: "Smiley", pattern: [[0,1,1,0],[0,0,0,0],[1,0,0,1],[0,1,1,0]] },
+                { title: "Maison", pattern: [[0,1,0,0],[1,1,1,0],[0,1,0,0],[1,0,1,0]] },
+                { title: "L", pattern: [[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,1,1,1]] },
+                { title: "T", pattern: [[1,1,1,1],[0,1,0,0],[0,1,0,0],[0,1,0,0]] },
+                { title: "Plus", pattern: [[0,1,0,0],[1,1,1,0],[0,1,0,0],[0,0,0,0]] },
+                { title: "Diagonale", pattern: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]] },
+                { title: "Cadre", pattern: [[1,1,1,1],[1,0,0,1],[1,0,0,1],[1,1,1,1]] },
+                { title: "Damier", pattern: [[1,0,1,0],[0,1,0,1],[1,0,1,0],[0,1,0,1]] },
+                { title: "Flèche", pattern: [[0,1,0,0],[1,1,1,0],[0,1,0,0],[0,1,0,0]] },
+            ];
+            const lectureChallenges = [
+                { title: "Défi 1", program: [{type: 'down'}, {type: 'right'}, {type: 'color'}, {type: 'right'}, {type: 'color'}] },
+                { title: "Défi 2", program: [{type: 'right'}, {type: 'right'}, {type: 'down'}, {type: 'color'}, {type: 'down'}, {type: 'color'}] },
+                { title: "Défi 3", program: [{type: 'color'}, {type: 'right'}, {type: 'down'}, {type: 'color'}, {type: 'right'}, {type: 'down'}, {type: 'color'}] },
+                { title: "Défi 4", program: [{type: 'down'}, {type: 'down'}, {type: 'color'}, {type: 'right'}, {type: 'up'}, {type: 'color'}, {type: 'right'}, {type: 'down'}, {type: 'color'}] },
+                { title: "Défi 5", program: [{type: 'right'}, {type: 'color'}, {type: 'right'}, {type: 'color'}, {type: 'down'}, {type: 'left'}, {type: 'color'}, {type: 'left'}, {type: 'color'}] },
+                { title: "Défi 6", program: [{type: 'down'}, {type: 'color'}, {type: 'right'}, {type: 'color'}, {type: 'down'}, {type: 'color'}, {type: 'right'}, {type: 'color'}] },
+                { title: "Défi 7", program: [{type: 'right'}, {type: 'down'}, {type: 'right'}, {type: 'down'}, {type: 'color'}, {type: 'up'}, {type: 'left'}, {type: 'color'}] },
+                { title: "Défi 8", program: [{type: 'color'}, {type: 'down'}, {type: 'down'}, {type: 'color'}, {type: 'right'}, {type: 'up'}, {type: 'color'}, {type: 'right'}, {type: 'down'}, {type: 'color'}] },
+                { title: "Défi 9", program: [{type: 'color'}, {type: 'right'}, {type: 'color'}, {type: 'right'}, {type: 'color'}, {type: 'down'}, {type: 'color'}, {type: 'left'}, {type: 'color'}, {type: 'left'}, {type: 'color'}] },
+                { title: "Défi 10", program: [{type: 'right'}, {type: 'down'}, {type: 'color'}, {type: 'down'}, {type: 'left'}, {type: 'color'}, {type: 'left'}, {type: 'up'}, {type: 'color'}] }
+            ];
+
+            // --- GAME STATE ---
+            let gameMode = 'sable';
+            let currentChallengeIndex = 0;
+            let robotState = { x: 0, y: 0 };
+            let program = [];
+            let isExecuting = false;
+            let robotEl; 
+            let timerInterval = null;
+            let startTime = 0;
+            let elapsedTime = 0;
+            let timerRunning = false;
+            let bestTimes = {};
+
+            // --- TIMER FUNCTIONS ---
+            function startTimer() {
+                if (!timerRunning) {
+                    startTime = Date.now() - elapsedTime;
+                    timerInterval = setInterval(updateTimerDisplay, 1000);
+                    timerRunning = true;
+                }
+            }
+            function stopTimer() {
+                if (timerRunning) {
+                    clearInterval(timerInterval);
+                    elapsedTime = Date.now() - startTime;
+                    timerRunning = false;
+                }
+            }
+            function resetTimer() {
+                stopTimer();
+                elapsedTime = 0;
+                updateTimerDisplay();
+            }
+            function formatTime(ms) {
+                if (ms === null) return '--:--';
+                const totalSeconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+                const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+                return `${minutes}:${seconds}`;
+            }
+            function updateTimerDisplay() {
+                const currentTime = timerRunning ? Date.now() - startTime : elapsedTime;
+                timerEl.textContent = formatTime(currentTime);
+            }
+
+            // --- RESULTS FUNCTIONS ---
+            function saveResults() { localStorage.setItem('graphPaperResults', JSON.stringify(bestTimes)); }
+            function loadResults() {
+                const saved = localStorage.getItem('graphPaperResults');
+                if (saved) bestTimes = JSON.parse(saved);
+            }
+            function renderResults() {
+                resultsContainer.innerHTML = `<h3 class="text-xl font-bold text-gray-700 mb-2">Tableau des Résultats</h3>`;
+                const table = document.createElement('table');
+                table.id = 'results-table';
+                table.className = 'w-full text-left bg-white rounded shadow';
+                table.innerHTML = `<thead><tr class="bg-gray-200"><th class="p-2">Défi</th><th class="p-2">Meilleur Temps</th></tr></thead>`;
+                const tbody = document.createElement('tbody');
+                challenges.forEach((challenge, index) => {
+                    const time = bestTimes[index] !== undefined ? formatTime(bestTimes[index]) : '--:--';
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-t';
+                    tr.innerHTML = `<td class="p-2 font-bold">${index + 1}</td><td class="p-2">${time}</td>`;
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                resultsContainer.appendChild(table);
+            }
+
+            // --- FUNCTIONS ---
+            function setupMode(mode) {
+                gameMode = mode;
+                document.body.classList.toggle('lecture-mode', mode === 'lecture');
+                modeSelector.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+                challengeZone.classList.toggle('hidden', mode !== 'defi');
+                timerContainer.classList.toggle('hidden', mode !== 'defi');
+                resultsContainer.classList.toggle('hidden', mode !== 'defi');
+                controlPanels.classList.toggle('hidden', mode === 'lecture');
+                lecturePanel.classList.toggle('hidden', mode !== 'lecture');
+                
+                resetGame();
+                if (mode === 'defi') {
+                    loadChallenge(currentChallengeIndex, true);
+                    renderResults();
+                } else if (mode === 'lecture') {
+                    loadLectureChallenge(0);
+                }
+            }
+
+            function loadChallenge(index, isInitialLoad = false) {
+                currentChallengeIndex = index;
+                renderChallengePreview();
+                renderChallengeButtons();
+                softReset();
+                if (!isInitialLoad) {
+                    startTimer();
+                }
+            }
+
+            function loadLectureChallenge(index) {
+                currentChallengeIndex = index;
+                renderLectureProgram();
+                renderLectureChallengeButtons();
+                softReset();
+            }
+
+            function renderChallengePreview() {
+                challengePreview.innerHTML = '';
+                const pattern = challenges[currentChallengeIndex].pattern;
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('grid-cell');
+                        if (pattern[y][x] === 1) cell.classList.add('colored');
+                        challengePreview.appendChild(cell);
+                    }
+                }
+            }
+            
+            function renderChallengeButtons() {
+                challengeButtons.innerHTML = '';
+                challenges.forEach((challenge, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = index + 1;
+                    button.classList.add('challenge-btn');
+                    if(index === currentChallengeIndex) button.classList.add('active');
+                    button.addEventListener('click', () => loadChallenge(index));
+                    challengeButtons.appendChild(button);
+                });
+            }
+
+            function renderLectureChallengeButtons() {
+                lectureChallengeButtons.innerHTML = '';
+                lectureChallenges.forEach((challenge, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = index + 1;
+                    button.classList.add('challenge-btn');
+                    if(index === currentChallengeIndex) button.classList.add('active');
+                    button.addEventListener('click', () => loadLectureChallenge(index));
+                    lectureChallengeButtons.appendChild(button);
+                });
+            }
+
+            function createGrid() {
+                gameBoard.innerHTML = '';
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('grid-cell');
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        gameBoard.appendChild(cell);
+                    }
+                }
+                robotEl = document.createElement('div');
+                robotEl.id = 'robot';
+                robotEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="60%" height="60%" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497L21.173 6.812z"></path><path d="m15 5 4 4"></path></svg>`;
+                gameBoard.appendChild(robotEl);
+                updateRobotPosition();
+            }
+
+            function updateRobotPosition() {
+                if (!robotEl) return;
+                const cellWidth = gameBoard.clientWidth / GRID_SIZE;
+                const cellHeight = gameBoard.clientHeight / GRID_SIZE;
+                robotEl.style.transform = `translate(${robotState.x * cellWidth}px, ${robotState.y * cellHeight}px)`;
+            }
+
+            function addCommand(type) {
+                if (isExecuting) return;
+                program.push({ type });
+                renderProgram();
+            }
+
+            function renderProgram(sequenceEl = programSequence, prog = program) {
+                sequenceEl.innerHTML = '';
+                prog.forEach((cmd, index) => {
+                    const item = document.createElement('div');
+                    item.classList.add('program-item');
+                    item.dataset.index = index;
+                    switch(cmd.type) {
+                        case 'up': item.textContent = '↑'; item.style.backgroundColor = '#ef4444'; break;
+                        case 'down': item.textContent = '↓'; item.style.backgroundColor = '#a855f7'; break;
+                        case 'left': item.textContent = '←'; item.style.backgroundColor = '#3b82f6'; break;
+                        case 'right': item.textContent = '→'; item.style.backgroundColor = '#22c55e'; break;
+                        case 'color':
+                            item.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white"><path d="M20.28 3.44a2.5 2.5 0 0 0-3.53 0L3.44 16.75a1 1 0 0 0-.29.71v3.1a1 1 0 0 0 1 1h3.1a1 1 0 0 0 .71-.29L20.57 7.26a2.5 2.5 0 0 0 0-3.53l-.29-.29Z"></path></svg>`;
+                            item.title = 'Griser';
+                            item.style.backgroundColor = '#eab308';
+                            break;
+                    }
+                    sequenceEl.appendChild(item);
+                });
+            }
+
+            function renderLectureProgram() {
+                renderProgram(lectureProgramSequence, lectureChallenges[currentChallengeIndex].program);
+            }
+            
+            function softReset() {
+                program = [];
+                renderProgram();
+                robotState = { x: 0, y: 0 };
+                document.querySelectorAll('.grid-cell.colored').forEach(cell => cell.classList.remove('colored'));
+                updateRobotPosition();
+                isExecuting = false;
+                updateButtonStates();
+            }
+
+            function resetGame() {
+                softReset();
+                resetTimer();
+            }
+
+            function updateButtonStates() {
+                const buttons = [upBtn, downBtn, leftBtn, rightBtn, colorBtn, executeBtn, resetBtn];
+                buttons.forEach(btn => {
+                    btn.disabled = isExecuting;
+                    btn.classList.toggle('opacity-50', isExecuting);
+                    btn.classList.toggle('cursor-not-allowed', isExecuting);
+                });
+            }
+
+            function checkWin() {
+                const solution = challenges[currentChallengeIndex].pattern;
+                let success = true;
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const cell = gameBoard.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`);
+                        const isColored = cell.classList.contains('colored');
+                        if ((solution[y][x] === 1 && !isColored) || (solution[y][x] === 0 && isColored)) {
+                            success = false;
+                            break;
+                        }
+                    }
+                    if (!success) break;
+                }
+                
+                if (success) {
+                    const oldTime = bestTimes[currentChallengeIndex];
+                    if (oldTime === undefined || elapsedTime < oldTime) {
+                        bestTimes[currentChallengeIndex] = elapsedTime;
+                        saveResults();
+                        renderResults();
+                    }
+                    showMessage('success');
+                } else {
+                    showMessage('fail');
+                }
+            }
+            
+            function checkLectureWin() {
+                const solutionProgram = lectureChallenges[currentChallengeIndex].program;
+                const solutionGrid = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+                let tempState = { x: 0, y: 0 };
+
+                solutionProgram.forEach(command => {
+                    let nextX = tempState.x, nextY = tempState.y;
+                    switch(command.type) {
+                        case 'up': nextY--; break;
+                        case 'down': nextY++; break;
+                        case 'left': nextX--; break;
+                        case 'right': nextX++; break;
+                        case 'color': solutionGrid[tempState.y][tempState.x] = 1; break;
+                    }
+                    if (nextX >= 0 && nextX < GRID_SIZE && nextY >= 0 && nextY < GRID_SIZE) {
+                        tempState.x = nextX;
+                        tempState.y = nextY;
+                    }
+                });
+
+                let success = true;
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const cell = gameBoard.querySelector(`.grid-cell[data-x='${x}'][data-y='${y}']`);
+                        const isColored = cell.classList.contains('colored');
+                        if ((solutionGrid[y][x] === 1 && !isColored) || (solutionGrid[y][x] === 0 && isColored)) {
+                            success = false;
+                            break;
+                        }
+                    }
+                    if (!success) break;
+                }
+                 if (success) { showMessage('success'); } else { showMessage('fail'); }
+            }
+
+            function showMessage(type) {
+                let title, text, icon;
+                messageBox.classList.remove('success');
+                switch (type) {
+                    case 'success':
+                        title = 'Bravo !'; text = (gameMode === 'defi' ? `Défi réussi en ${formatTime(elapsedTime)} !` : 'Réponse correcte !'); icon = '🎉';
+                        messageBox.classList.add('success');
+                        break;
+                    case 'fail':
+                        title = 'Dommage !'; text = 'Le dessin ne correspond pas. Essayez encore !'; icon = '🤔'; break;
+                }
+                messageTitle.textContent = title;
+                messageText.textContent = text;
+                messageIcon.textContent = icon;
+                messageModal.classList.remove('hidden');
+            }
+
+            function hideMessage() {
+                messageModal.classList.add('hidden');
+            }
+
+            async function executeProgram() {
+                if (isExecuting || program.length === 0) return;
+                isExecuting = true;
+                updateButtonStates();
+                stopTimer();
+
+                robotState = { x: 0, y: 0 };
+                document.querySelectorAll('.grid-cell.colored').forEach(cell => cell.classList.remove('colored'));
+                updateRobotPosition();
+                
+                await new Promise(res => setTimeout(res, 500));
+
+                for (let i = 0; i < program.length; i++) {
+                    const command = program[i];
+                    const programItems = programSequence.children;
+                    if (programItems[i]) programItems[i].classList.add('active');
+
+                    let nextX = robotState.x, nextY = robotState.y;
+                    switch(command.type) {
+                        case 'up': nextY--; break;
+                        case 'down': nextY++; break;
+                        case 'left': nextX--; break;
+                        case 'right': nextX++; break;
+                        case 'color':
+                            const cell = gameBoard.querySelector(`.grid-cell[data-x='${robotState.x}'][data-y='${robotState.y}']`);
+                            if (cell) cell.classList.add('colored');
+                            break;
+                    }
+                    
+                    if (nextX >= 0 && nextX < GRID_SIZE && nextY >= 0 && nextY < GRID_SIZE) {
+                        robotState.x = nextX;
+                        robotState.y = nextY;
+                    }
+                    
+                    updateRobotPosition();
+                    
+                    await new Promise(res => setTimeout(res, 700));
+                    if (programItems[i]) programItems[i].classList.remove('active');
+                }
+
+                if (gameMode === 'defi') checkWin();
+
+                isExecuting = false;
+                updateButtonStates();
+            }
+
+            // --- EVENT LISTENERS ---
+            upBtn.addEventListener('click', () => addCommand('up'));
+            downBtn.addEventListener('click', () => addCommand('down'));
+            leftBtn.addEventListener('click', () => addCommand('left'));
+            rightBtn.addEventListener('click', () => addCommand('right'));
+            colorBtn.addEventListener('click', () => addCommand('color'));
+            resetBtn.addEventListener('click', resetGame);
+            executeBtn.addEventListener('click', executeProgram);
+            checkBtn.addEventListener('click', checkLectureWin);
+            window.addEventListener('resize', updateRobotPosition);
+            modeSelector.addEventListener('click', (e) => {
+                if(e.target.dataset.mode) setupMode(e.target.dataset.mode);
+            });
+            messageCloseBtn.addEventListener('click', hideMessage);
+            gameBoard.addEventListener('click', (e) => {
+                if (gameMode === 'lecture' && e.target.classList.contains('grid-cell')) {
+                    e.target.classList.toggle('colored');
+                }
+            });
+
+            // --- INITIALIZATION ---
+            loadResults();
+            createGrid();
+            setupMode('sable');
+        });
+    </script>
+</body>
+</html>
